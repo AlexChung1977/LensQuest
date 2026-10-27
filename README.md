@@ -1,46 +1,79 @@
 # LensQuest
 
-以圖找圖：輸入一張圖片，搜尋網路上視覺相關的圖片，並存到你指定的路徑。
+以圖找圖：輸入一張圖片，搜尋視覺相關圖片，並存到你指定的路徑。
 
-## 初版內容
+## 功能
 
-- **UI 原型**（`app/`）：Vite + React + TypeScript
-- **分層架構**：presentation / application / domain / infrastructure
-- **Mock 視覺搜尋**：可之後替換成 Google Lens / Bing Visual Search adapter
-- **儲存**：瀏覽器目錄選擇 API，或下載 fallback，並產生 `manifest`
-
-詳細設計見 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)，進度見 [docs/ROADMAP.md](docs/ROADMAP.md)。
+- 上傳／拖放查詢圖
+- 視覺搜尋 providers（自動選擇）
+  - **Bing Visual Search**（設定 `BING_VISUAL_SEARCH_KEY`）
+  - **SerpAPI Google Lens**（設定 `SERPAPI_API_KEY` + `IMGBB_API_KEY`）
+  - **本機 perceptual 圖庫**（預設，無需金鑰）
+- 勾選結果後下載並寫入資料夾（含 `manifest-*.json`）
+- 搜尋歷史（SQLite）
+- 圖片 proxy（避開瀏覽器 CORS）
+- 可選 Electron 桌面殼（Mac 原生選資料夾）
 
 ## 快速開始
 
 ```bash
-cd app
+cp .env.example .env
 npm install
-npm run dev
+npm install --prefix server
+npm install --prefix app
+npm run seed          # 建立本機圖庫索引（首次）
+npm run dev           # API :8787 + Web :5173
 ```
 
-開啟終端機顯示的本地網址（預設 `http://localhost:5173`）。
+開瀏覽器：http://localhost:5173
+
+### 雲端搜尋（可選）
+
+編輯 `.env`：
 
 ```bash
-npm run build   # 型別檢查 + 正式建置
-npm run lint    # oxlint
+BING_VISUAL_SEARCH_KEY=your_azure_bing_key
+# 或
+SERPAPI_API_KEY=your_serpapi_key
+IMGBB_API_KEY=your_imgbb_key
+SEARCH_PROVIDER=auto
 ```
 
-## 使用流程
+### Mac 桌面版
 
-1. 在首頁拖入或選擇一張圖片  
-2. 等待 mock 搜尋結果  
-3. 勾選要留下的圖片  
-4. 按「存到路徑」（可先在「設定」改路徑標籤與門檻）
+先啟動 `npm run dev`，另開終端：
 
-## 目錄結構
+```bash
+npm install --prefix desktop
+npm run desktop
+```
+
+桌面版可用系統對話框選資料夾並直接寫檔。
+
+## 專案結構
 
 ```text
-docs/                 架構與 roadmap
-app/
-  src/
-    domain/           領域模型與儲存政策
-    application/      查詢圖建立、hash
-    infrastructure/   搜尋 / 下載 / 檔案 / 設定
-    presentation/     UI 與 session hook
+app/        React UI（Vite）
+server/     Express API + SQLite + providers
+desktop/    Electron shell
+docs/       架構與 roadmap
 ```
+
+## API
+
+| Method | Path | 說明 |
+| --- | --- | --- |
+| GET | `/v1/health` | 健康檢查與 providers |
+| POST | `/v1/search` | multipart `image` + `maxResults`/`minScore` |
+| GET | `/v1/jobs/:id` | 查詢 job |
+| GET | `/v1/history` | 搜尋歷史 |
+| GET | `/v1/proxy?url=` | 圖片 proxy |
+
+## 驗證
+
+```bash
+npm run build
+npm test
+```
+
+更多設計見 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。

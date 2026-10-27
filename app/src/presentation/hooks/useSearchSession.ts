@@ -4,7 +4,13 @@ import type { AppSettings, JobPhase, QueryImage, SearchHit } from '../../domain/
 import { downloadMany } from '../../infrastructure/downloader/imageDownloader';
 import { saveWithBrowserFileStore } from '../../infrastructure/fileStore/browserFileStore';
 import { loadSettings, saveSettings } from '../../infrastructure/settings/settingsStore';
+import {
+  fetchHealth,
+  HttpVisualSearchClient,
+} from '../../infrastructure/visualSearch/httpVisualSearchClient';
 import { mockVisualSearchClient } from '../../infrastructure/visualSearch/mockVisualSearchClient';
+
+const httpClient = new HttpVisualSearchClient();
 
 export interface SearchSessionState {
   phase: JobPhase;
@@ -15,6 +21,10 @@ export interface SearchSessionState {
   errorMessage: string | null;
   saveSummary: string | null;
   downloadProgress: { done: number; total: number };
+  provider: string | null;
+  apiOnline: boolean;
+  apiProviders: string[];
+  historyVersion: number;
 }
 
 export function useSearchSession() {
@@ -26,7 +36,28 @@ export function useSearchSession() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [saveSummary, setSaveSummary] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState({ done: 0, total: 0 });
+  const [provider, setProvider] = useState<string | null>(null);
+  const [apiOnline, setApiOnline] = useState(false);
+  const [apiProviders, setApiProviders] = useState<string[]>([]);
+  const [historyVersion, setHistoryVersion] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const ping = () => {
+      void fetchHealth().then((health) => {
+        if (cancelled) return;
+        setApiOnline(health.ok);
+        setApiProviders(health.providers);
+      });
+    };
+    ping();
+    const timer = window.setInterval(ping, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -56,6 +87,7 @@ export function useSearchSession() {
     setErrorMessage(null);
     setSaveSummary(null);
     setDownloadProgress({ done: 0, total: 0 });
+    setProvider(null);
     setPhase('idle');
   }, []);
 
@@ -66,6 +98,7 @@ export function useSearchSession() {
       setSaveSummary(null);
       setHits([]);
       setSelectedIds(new Set());
+      setProvider(null);
       setPhase('uploading');
 
       try {
@@ -76,14 +109,33 @@ export function useSearchSession() {
         });
         setPhase('searching');
 
-        const response = await mockVisualSearchClient.search({
-          image: nextQuery,
-          maxResults: settings.maxResults,
-          minScore: settings.minScore,
-        });
+        const health = await fetchHealth();
+        setApiOnline(health.ok);
+        setApiProviders(health.providers);
 
+        const response = health.ok
+          ? await httpClient.search({
+              image: nextQuery,
+              maxResults: settings.maxResults,
+              minScore: settings.minScore,
+            })
+          : await mockVisualSearchClient.search({
+              image: nextQuery,
+              maxResults: settings.maxResults,
+              minScore: settings.minScore,
+            });
+
+        const usedProvider =
+          'provider' in response && typeof response.provider === 'string'
+            ? response.provider
+            : health.ok
+              ? 'api'
+              : 'mock-offline';
+
+        setProvider(usedProvider);
         setHits(response.hits);
         setSelectedIds(new Set(response.hits.slice(0, 6).map((h) => h.id)));
+        setHistoryVersion((v) => v + 1);
         setPhase('preview');
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : '搜尋失敗');
@@ -153,8 +205,8 @@ export function useSearchSession() {
       });
 
       setSaveSummary(
-        result.mode === 'directory'
-          ? `已寫入 ${result.savedPaths.length} 張到所選資料夾，並附上 manifest。`
+        result.mode === 'desktop' || result.mode === 'directory'
+          ? `已寫入 ${result.savedPaths.length} 個檔案到所選資料夾（含 manifest）。`
           : `已觸發 ${result.savedPaths.length} 個下載（含 manifest）。路徑標籤：${settings.savePathLabel}`,
       );
       setPhase('done');
@@ -177,6 +229,10 @@ export function useSearchSession() {
     errorMessage,
     saveSummary,
     downloadProgress,
+    provider,
+    apiOnline,
+    apiProviders,
+    historyVersion,
     startWithFile,
     toggleHit,
     selectAll,

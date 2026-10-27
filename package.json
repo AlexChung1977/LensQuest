@@ -1,0 +1,19 @@
+{
+  "name": "lensquest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LensQuest — reverse image search and save to a local path",
+  "scripts": {
+    "dev": "concurrently -k -n server,web -c teal,cyan \"npm run dev --prefix server\" \"npm run dev --prefix app\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:web": "npm run dev --prefix app",
+    "build": "npm run build --prefix server && npm run build --prefix app",
+    "test": "npm run test --prefix server",
+    "start": "npm run start --prefix server",
+    "seed": "npm run seed --prefix server",
+    "desktop": "npm run start --prefix desktop"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}

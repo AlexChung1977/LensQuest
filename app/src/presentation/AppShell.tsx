@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { DropZone } from './components/DropZone';
+import { HistoryPanel } from './components/HistoryPanel';
 import { ResultsGrid } from './components/ResultsGrid';
 import { SettingsPanel } from './components/SettingsPanel';
 import { useSearchSession } from './hooks/useSearchSession';
@@ -8,7 +9,11 @@ import { useSearchSession } from './hooks/useSearchSession';
 export function AppShell() {
   const session = useSearchSession();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const busy = session.phase === 'uploading' || session.phase === 'searching' || session.phase === 'downloading';
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const busy =
+    session.phase === 'uploading' ||
+    session.phase === 'searching' ||
+    session.phase === 'downloading';
   const showHero = session.phase === 'idle';
 
   return (
@@ -16,13 +21,31 @@ export function AppShell() {
       <header className="lq-topbar">
         <div className="lq-brand">
           <p className="lq-brand__name">LensQuest</p>
-          <p className="lq-brand__tag">以圖找圖 · 存到你指定的路徑</p>
+          <p className="lq-brand__tag">
+            以圖找圖 · 存到你指定的路徑
+            <span className={`lq-status ${session.apiOnline ? 'lq-status--on' : 'lq-status--off'}`}>
+              {session.apiOnline ? 'API online' : 'API offline'}
+            </span>
+          </p>
         </div>
         <div className="lq-topbar__actions">
           <button
             type="button"
             className="lq-btn lq-btn--ghost"
-            onClick={() => setSettingsOpen((v) => !v)}
+            onClick={() => {
+              setHistoryOpen((v) => !v);
+              if (!historyOpen) setSettingsOpen(false);
+            }}
+          >
+            {historyOpen ? '關閉歷史' : '歷史'}
+          </button>
+          <button
+            type="button"
+            className="lq-btn lq-btn--ghost"
+            onClick={() => {
+              setSettingsOpen((v) => !v);
+              if (!settingsOpen) setHistoryOpen(false);
+            }}
           >
             {settingsOpen ? '關閉設定' : '設定'}
           </button>
@@ -38,7 +61,10 @@ export function AppShell() {
         open={settingsOpen}
         settings={session.settings}
         onChange={session.updateSettings}
+        apiOnline={session.apiOnline}
+        apiProviders={session.apiProviders}
       />
+      <HistoryPanel open={historyOpen} refreshKey={session.historyVersion} />
 
       <AnimatePresence mode="wait">
         {showHero ? (
@@ -53,7 +79,8 @@ export function AppShell() {
             <h1 className="lq-hero__brand">LensQuest</h1>
             <p className="lq-hero__headline">丟進一張圖，找出網路上的相似畫面。</p>
             <p className="lq-hero__support">
-              初版架構：選圖 → 視覺搜尋 → 勾選結果 → 寫入設定的儲存路徑（含 manifest）。
+              完整流程：選圖 → API 視覺搜尋（Bing / SerpAPI / 本機圖庫）→ 勾選結果 → 下載並寫入路徑（含
+              manifest）。
             </p>
             <DropZone disabled={busy} onFile={session.startWithFile} />
           </motion.section>
@@ -89,6 +116,7 @@ export function AppShell() {
                       : ''}
                     {' · '}
                     hash {session.query.contentHash.slice(0, 10)}
+                    {session.provider ? ` · provider ${session.provider}` : ''}
                   </p>
                   <p>儲存路徑：{session.settings.savePathLabel}</p>
                   {(session.phase === 'searching' || session.phase === 'uploading') && (
@@ -104,7 +132,8 @@ export function AppShell() {
                           width: `${
                             session.downloadProgress.total === 0
                               ? 0
-                              : (session.downloadProgress.done / session.downloadProgress.total) * 100
+                              : (session.downloadProgress.done / session.downloadProgress.total) *
+                                100
                           }%`,
                         }}
                       />
@@ -134,7 +163,11 @@ export function AppShell() {
                       <span className="lq-count">
                         已選 {session.selectedIds.size} / {session.hits.length}
                       </span>
-                      <button type="button" className="lq-btn lq-btn--ghost" onClick={session.selectAll}>
+                      <button
+                        type="button"
+                        className="lq-btn lq-btn--ghost"
+                        onClick={session.selectAll}
+                      >
                         全選
                       </button>
                       <button
@@ -165,14 +198,16 @@ export function AppShell() {
               )}
 
             {session.phase === 'preview' && session.hits.length === 0 && (
-              <div className="lq-banner">沒有達到相似度門檻的結果，試試調低設定中的最低分數。</div>
+              <div className="lq-banner">
+                沒有達到相似度門檻的結果，試試調低設定中的最低分數。
+              </div>
             )}
           </motion.section>
         )}
       </AnimatePresence>
 
       <footer className="lq-footer">
-        LensQuest 初版 UI · mock 視覺搜尋 · 瀏覽器 File Store（目錄 API / 下載 fallback）
+        LensQuest · API providers: Bing Visual Search / SerpAPI Google Lens / local perceptual corpus
       </footer>
     </div>
   );
