@@ -1,0 +1,90 @@
+:root {
+  /* Photo lab / light-table direction */
+  --lq-ink: #14212b;
+  --lq-ink-soft: #3a4a57;
+  --lq-muted: #6b7c8a;
+  --lq-paper: #d9e3ea;
+  --lq-paper-bright: #eef3f7;
+  --lq-surface: rgba(255, 255, 255, 0.72);
+  --lq-surface-strong: rgba(255, 255, 255, 0.9);
+  --lq-line: rgba(20, 33, 43, 0.12);
+  --lq-line-strong: rgba(20, 33, 43, 0.22);
+  --lq-accent: #0d7377;
+  --lq-accent-deep: #095456;
+  --lq-accent-soft: rgba(13, 115, 119, 0.12);
+  --lq-warm: #c45c26;
+  --lq-danger: #a33b3b;
+  --lq-ok: #1f7a4c;
+
+  --lq-font-display: 'Syne', 'Avenir Next', 'Segoe UI', sans-serif;
+  --lq-font-body: 'DM Sans', 'Avenir Next', 'Segoe UI', sans-serif;
+
+  --lq-radius: 4px;
+  --lq-radius-lg: 12px;
+  --lq-shadow-soft: 0 0 0 1px var(--lq-line);
+  --lq-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--lq-ink);
+  font-family: var(--lq-font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  background:
+    radial-gradient(1200px 700px at 12% -10%, rgba(13, 115, 119, 0.16), transparent 55%),
+    radial-gradient(900px 600px at 100% 0%, rgba(196, 92, 38, 0.1), transparent 50%),
+    linear-gradient(165deg, var(--lq-paper-bright) 0%, var(--lq-paper) 48%, #cfdbe4 100%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(20, 33, 43, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 33, 43, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent 85%);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: var(--lq-accent-deep);
+}
+
+:focus-visible {
+  outline: 2px solid var(--lq-accent);
+  outline-offset: 2px;
+}
