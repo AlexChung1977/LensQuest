@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import type { SearchHit } from '../../domain/types';
+import { proxyImageUrl } from '../../infrastructure/visualSearch/httpVisualSearchClient';
 
 interface ResultsGridProps {
   hits: SearchHit[];
@@ -29,7 +30,12 @@ export function ResultsGrid({ hits, selectedIds, onToggle }: ResultsGridProps) {
             <span className="lq-hit__check" aria-hidden>
               {selected ? '✓' : ''}
             </span>
-            <img className="lq-hit__img" src={hit.thumbUrl} alt="" loading="lazy" />
+            <img
+              className="lq-hit__img"
+              src={proxyImageUrl(hit.thumbUrl)}
+              alt={hit.title ?? ''}
+              loading="lazy"
+            />
             <span className="lq-hit__body">
               <span className="lq-hit__score">{Math.round(hit.score * 100)}% match</span>
               <span className="lq-hit__source">

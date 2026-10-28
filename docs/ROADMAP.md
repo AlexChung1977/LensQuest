@@ -1,27 +1,19 @@
 # LensQuest Roadmap
 
-## P0 — Browser / Mac-oriented MVP (this PR)
+## Done
 
-- [x] Project scaffold with layered architecture
-- [x] UI: brand hero, drop zone, results, settings, save CTA
-- [x] Mock visual search + download + browser file store
-- [x] Architecture documentation
+- [x] React UI (hero, results, settings, history)
+- [x] Express API with job history (SQLite)
+- [x] Local perceptual corpus provider (aHash)
+- [x] Bing Visual Search + SerpAPI Google Lens adapters
+- [x] Image download proxy
+- [x] Browser / Electron file save + manifest
+- [x] Root monorepo scripts + docs
 
-## P1 — Real search + mobile paths
+## Next
 
-- [ ] Wire SerpAPI Google Lens or Bing Visual Search behind `VisualSearchClient`
-- [ ] Thin backend for API keys / rate limits
-- [ ] iOS Files / Android SAF path pickers in a native or Flutter client
-
-## P2 — Product polish
-
-- [ ] License filters and source attribution UI
-- [ ] Naming rules, concurrency, similarity threshold persisted per device
-- [ ] Local job history (SQLite)
-- [ ] Content-hash dedupe across sessions
-
-## P3 — Cross-device sync
-
-- [ ] Optional Mac helper that consumes jobs started on phone
-- [ ] Cloud folder root (iCloud / Drive) as shared logical path
-- [ ] Self-hosted CLIP index for private corpora
+- [ ] Flutter / native mobile clients sharing domain contracts
+- [ ] Mac LaunchAgent helper for phone → Mac path sync
+- [ ] License filters in UI
+- [ ] Larger private corpus / CLIP embeddings
+- [ ] Auth + rate limits for hosted deployments

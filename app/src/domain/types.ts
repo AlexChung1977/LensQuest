@@ -36,6 +36,7 @@ export interface SearchHit {
   license: LicenseKind;
   width?: number;
   height?: number;
+  title?: string;
 }
 
 export type SaveJobStatus = 'pending' | 'running' | 'saved' | 'failed' | 'skipped';
@@ -68,7 +69,7 @@ export interface AppSettings {
 export const DEFAULT_SETTINGS: AppSettings = {
   savePathLabel: '~/Pictures/LensQuest',
   maxResults: 12,
-  minScore: 0.35,
+  minScore: 0.2,
   downloadConcurrency: 4,
   namingPattern: 'index',
 };

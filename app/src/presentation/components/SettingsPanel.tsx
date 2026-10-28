@@ -5,9 +5,17 @@ interface SettingsPanelProps {
   open: boolean;
   settings: AppSettings;
   onChange: (patch: Partial<AppSettings>) => void;
+  apiOnline: boolean;
+  apiProviders: string[];
 }
 
-export function SettingsPanel({ open, settings, onChange }: SettingsPanelProps) {
+export function SettingsPanel({
+  open,
+  settings,
+  onChange,
+  apiOnline,
+  apiProviders,
+}: SettingsPanelProps) {
   if (!open) return null;
 
   const policy = resolveStoragePolicy();
@@ -15,6 +23,9 @@ export function SettingsPanel({ open, settings, onChange }: SettingsPanelProps) 
   return (
     <section className="lq-settings" aria-label="儲存與搜尋設定">
       <h2>設定</h2>
+      <p className="lq-settings__hint">
+        API：{apiOnline ? `連線中（${apiProviders.join(' → ') || 'unknown'}）` : '離線（將使用瀏覽器 mock）'}
+      </p>
       <p className="lq-settings__hint">
         平台：{policy.platform} · {policy.guidance}
       </p>
@@ -48,7 +59,7 @@ export function SettingsPanel({ open, settings, onChange }: SettingsPanelProps) 
             max={1}
             step={0.05}
             value={settings.minScore}
-            onChange={(e) => onChange({ minScore: Number(e.target.value) || 0.35 })}
+            onChange={(e) => onChange({ minScore: Number(e.target.value) || 0.2 })}
           />
         </div>
         <div className="lq-field">
@@ -76,6 +87,10 @@ export function SettingsPanel({ open, settings, onChange }: SettingsPanelProps) 
           </select>
         </div>
       </div>
+      <p className="lq-settings__hint">
+        雲端搜尋：在專案根目錄 `.env` 設定 `BING_VISUAL_SEARCH_KEY` 或 `SERPAPI_API_KEY`（可加
+        `IMGBB_API_KEY`）。未設定時使用本機 perceptual 圖庫。
+      </p>
     </section>
   );
 }

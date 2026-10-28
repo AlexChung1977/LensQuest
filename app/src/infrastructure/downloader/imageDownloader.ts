@@ -1,3 +1,5 @@
+import { proxyImageUrl } from '../visualSearch/httpVisualSearchClient';
+
 export interface DownloadResult {
   hitId: string;
   bytes: ArrayBuffer;
@@ -14,8 +16,8 @@ function extensionFromContentType(contentType: string): string {
 }
 
 /**
- * Fetches image bytes with a simple retry. In production, enforce https-only
- * and optional size / content-type allowlists.
+ * Fetches image bytes with retry. Remote http(s) URLs go through the API proxy
+ * to avoid browser CORS blocks.
  */
 export async function downloadImage(
   hitId: string,
@@ -23,9 +25,10 @@ export async function downloadImage(
   signal?: AbortSignal,
 ): Promise<DownloadResult> {
   let lastError: unknown;
+  const fetchUrl = proxyImageUrl(url);
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      const response = await fetch(url, { signal, mode: 'cors' });
+      const response = await fetch(fetchUrl, { signal });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
