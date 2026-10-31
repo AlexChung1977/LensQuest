@@ -16,6 +16,7 @@ export interface SearchSessionState {
   phase: JobPhase;
   query: QueryImage | null;
   hits: SearchHit[];
+  videos: SearchHit[];
   selectedIds: Set<string>;
   settings: AppSettings;
   errorMessage: string | null;
@@ -31,6 +32,7 @@ export function useSearchSession() {
   const [phase, setPhase] = useState<JobPhase>('idle');
   const [query, setQuery] = useState<QueryImage | null>(null);
   const [hits, setHits] = useState<SearchHit[]>([]);
+  const [videos, setVideos] = useState<SearchHit[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [settings, setSettingsState] = useState<AppSettings>(() => loadSettings());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -83,6 +85,7 @@ export function useSearchSession() {
       return null;
     });
     setHits([]);
+    setVideos([]);
     setSelectedIds(new Set());
     setErrorMessage(null);
     setSaveSummary(null);
@@ -97,6 +100,7 @@ export function useSearchSession() {
       setErrorMessage(null);
       setSaveSummary(null);
       setHits([]);
+      setVideos([]);
       setSelectedIds(new Set());
       setProvider(null);
       setPhase('uploading');
@@ -134,6 +138,7 @@ export function useSearchSession() {
 
         setProvider(usedProvider);
         setHits(response.hits);
+        setVideos(response.videos);
         setSelectedIds(new Set(response.hits.slice(0, 6).map((h) => h.id)));
         setHistoryVersion((v) => v + 1);
         setPhase('preview');
@@ -224,6 +229,7 @@ export function useSearchSession() {
     phase,
     query,
     hits,
+    videos,
     selectedIds,
     settings,
     errorMessage,

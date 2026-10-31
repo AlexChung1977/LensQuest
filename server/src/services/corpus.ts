@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import type { AppDatabase } from '../db/database.js';
 import { CORPUS_SEEDS } from '../data/corpusUrls.js';
+import { VIDEO_SEEDS } from '../data/videoCorpus.js';
 import { averageHash } from '../util/ahash.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -18,6 +19,9 @@ export interface CorpusItem {
   source: string;
   license: string;
   ahash: string;
+  media: 'image' | 'video';
+  /** Playable file when media is video. */
+  watchUrl?: string;
 }
 
 const LOCAL_PALETTES: Array<[number, number, number]> = [
@@ -69,12 +73,34 @@ export function corpusFilePath(id: string): string {
   return path.join(CORPUS_DIR, `${id}.png`);
 }
 
+async function loadPoster(
+  id: string,
+  remoteUrl: string | undefined,
+  title: string,
+  index: number,
+): Promise<Buffer> {
+  const localPath = corpusFilePath(id);
+  if (fs.existsSync(localPath)) return fs.readFileSync(localPath);
+
+  let bytes = remoteUrl ? await fetchRemoteThumb(remoteUrl) : null;
+  if (bytes) {
+    try {
+      bytes = await sharp(bytes).png().toBuffer();
+    } catch {
+      bytes = null;
+    }
+  }
+  if (!bytes) bytes = await synthesizeLocalImage(id, title, index);
+  fs.writeFileSync(localPath, bytes);
+  return bytes;
+}
+
 export async function ensureCorpus(db: AppDatabase): Promise<number> {
   fs.mkdirSync(CORPUS_DIR, { recursive: true });
 
   const upsert = db.prepare(`
-    INSERT INTO corpus (id, title, url, thumb_url, source, license, ahash, updated_at)
-    VALUES (@id, @title, @url, @thumbUrl, @source, @license, @ahash, @updatedAt)
+    INSERT INTO corpus (id, title, url, thumb_url, source, license, ahash, updated_at, media, watch_url)
+    VALUES (@id, @title, @url, @thumbUrl, @source, @license, @ahash, @updatedAt, @media, @watchUrl)
     ON CONFLICT(id) DO UPDATE SET
       title = excluded.title,
       url = excluded.url,
@@ -82,27 +108,16 @@ export async function ensureCorpus(db: AppDatabase): Promise<number> {
       source = excluded.source,
       license = excluded.license,
       ahash = excluded.ahash,
-      updated_at = excluded.updated_at
+      updated_at = excluded.updated_at,
+      media = excluded.media,
+      watch_url = excluded.watch_url
   `);
 
   let indexed = 0;
   for (let i = 0; i < CORPUS_SEEDS.length; i += 1) {
     const seed = CORPUS_SEEDS[i]!;
-    const localPath = corpusFilePath(seed.id);
-    let bytes: Buffer | null = null;
-
-    if (fs.existsSync(localPath)) {
-      bytes = fs.readFileSync(localPath);
-    } else {
-      bytes = await fetchRemoteThumb(seed.thumbUrl || seed.url);
-      if (!bytes) {
-        bytes = await synthesizeLocalImage(seed.id, seed.title, i);
-      }
-      fs.writeFileSync(localPath, bytes);
-    }
-
+    const bytes = await loadPoster(seed.id, seed.thumbUrl || seed.url, seed.title, i);
     const ahash = await averageHash(bytes);
-    // Serve through API so clients never depend on Wikimedia availability.
     const servedUrl = `/v1/corpus/${seed.id}.png`;
     upsert.run({
       id: seed.id,
@@ -113,6 +128,28 @@ export async function ensureCorpus(db: AppDatabase): Promise<number> {
       license: seed.license,
       ahash,
       updatedAt: new Date().toISOString(),
+      media: 'image',
+      watchUrl: null,
+    });
+    indexed += 1;
+  }
+
+  for (let i = 0; i < VIDEO_SEEDS.length; i += 1) {
+    const seed = VIDEO_SEEDS[i]!;
+    const bytes = await loadPoster(seed.id, seed.thumbUrl, seed.title, CORPUS_SEEDS.length + i);
+    const ahash = await averageHash(bytes);
+    const servedUrl = `/v1/corpus/${seed.id}.png`;
+    upsert.run({
+      id: seed.id,
+      title: seed.title,
+      url: servedUrl,
+      thumbUrl: servedUrl,
+      source: seed.source,
+      license: seed.license,
+      ahash,
+      updatedAt: new Date().toISOString(),
+      media: 'video',
+      watchUrl: seed.fileUrl,
     });
     indexed += 1;
   }
@@ -129,6 +166,8 @@ export function listCorpus(db: AppDatabase): CorpusItem[] {
     source: string;
     license: string;
     ahash: string;
+    media: string | null;
+    watch_url: string | null;
   }>;
   return rows.map((row) => ({
     id: row.id,
@@ -138,5 +177,7 @@ export function listCorpus(db: AppDatabase): CorpusItem[] {
     source: row.source,
     license: row.license,
     ahash: row.ahash,
+    media: row.media === 'video' ? 'video' : 'image',
+    watchUrl: row.watch_url ?? undefined,
   }));
 }

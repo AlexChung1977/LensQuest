@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { DropZone } from './components/DropZone';
 import { HistoryPanel } from './components/HistoryPanel';
 import { ResultsGrid } from './components/ResultsGrid';
+import { VideoResults } from './components/VideoResults';
 import { SettingsPanel } from './components/SettingsPanel';
 import { useSearchSession } from './hooks/useSearchSession';
 
@@ -77,7 +78,7 @@ export function AppShell() {
             transition={{ duration: 0.35 }}
           >
             <h1 className="lq-hero__brand">LensQuest</h1>
-            <p className="lq-hero__headline">丟進一張圖，找出網路上的相似畫面。</p>
+            <p className="lq-hero__headline">丟進一張圖，照片和影片分開找出來。</p>
             <p className="lq-hero__support">
               完整流程：選圖 → API 視覺搜尋（Bing / SerpAPI / 本機圖庫）→ 勾選結果 → 下載並寫入路徑（含
               manifest）。
@@ -102,7 +103,7 @@ export function AppShell() {
                 />
                 <div className="lq-query-row__meta">
                   <h2>
-                    {session.phase === 'searching' && '正在搜尋相似圖片…'}
+                    {session.phase === 'searching' && '正在搜尋相似的照片與影片…'}
                     {session.phase === 'uploading' && '準備查詢圖…'}
                     {session.phase === 'preview' && '搜尋結果'}
                     {session.phase === 'downloading' && '下載並儲存中…'}
@@ -156,48 +157,74 @@ export function AppShell() {
               session.phase === 'downloading' ||
               session.phase === 'done' ||
               session.phase === 'error') &&
-              session.hits.length > 0 && (
+              (session.hits.length > 0 || session.videos.length > 0) && (
                 <>
-                  <div className="lq-toolbar">
-                    <div className="lq-toolbar__left">
-                      <span className="lq-count">
-                        已選 {session.selectedIds.size} / {session.hits.length}
-                      </span>
-                      <button
-                        type="button"
-                        className="lq-btn lq-btn--ghost"
-                        onClick={session.selectAll}
-                      >
-                        全選
-                      </button>
-                      <button
-                        type="button"
-                        className="lq-btn lq-btn--ghost"
-                        onClick={session.clearSelection}
-                      >
-                        清除
-                      </button>
+                  <section className="lq-result-section" aria-label="照片">
+                    <div className="lq-result-section__head">
+                      <h3>照片</h3>
+                      <p>{session.hits.length} 張 · 勾選後可存到路徑</p>
                     </div>
-                    <div className="lq-toolbar__right">
-                      <button
-                        type="button"
-                        className="lq-btn lq-btn--primary"
-                        disabled={busy || session.selectedIds.size === 0}
-                        onClick={() => void session.saveSelected()}
-                      >
-                        存到路徑
-                      </button>
+                    {session.hits.length > 0 ? (
+                      <>
+                        <div className="lq-toolbar">
+                          <div className="lq-toolbar__left">
+                            <span className="lq-count">
+                              已選 {session.selectedIds.size} / {session.hits.length}
+                            </span>
+                            <button
+                              type="button"
+                              className="lq-btn lq-btn--ghost"
+                              onClick={session.selectAll}
+                            >
+                              全選
+                            </button>
+                            <button
+                              type="button"
+                              className="lq-btn lq-btn--ghost"
+                              onClick={session.clearSelection}
+                            >
+                              清除
+                            </button>
+                          </div>
+                          <div className="lq-toolbar__right">
+                            <button
+                              type="button"
+                              className="lq-btn lq-btn--primary"
+                              disabled={busy || session.selectedIds.size === 0}
+                              onClick={() => void session.saveSelected()}
+                            >
+                              存到路徑
+                            </button>
+                          </div>
+                        </div>
+                        <ResultsGrid
+                          hits={session.hits}
+                          selectedIds={session.selectedIds}
+                          onToggle={session.toggleHit}
+                        />
+                      </>
+                    ) : (
+                      <div className="lq-banner">沒有達到相似度門檻的照片。</div>
+                    )}
+                  </section>
+
+                  <section className="lq-result-section" aria-label="影片">
+                    <div className="lq-result-section__head">
+                      <h3>影片</h3>
+                      <p>{session.videos.length} 部 · 點卡片播放，跟照片分開</p>
                     </div>
-                  </div>
-                  <ResultsGrid
-                    hits={session.hits}
-                    selectedIds={session.selectedIds}
-                    onToggle={session.toggleHit}
-                  />
+                    {session.videos.length > 0 ? (
+                      <VideoResults hits={session.videos} />
+                    ) : (
+                      <div className="lq-banner">沒有達到相似度門檻的影片。</div>
+                    )}
+                  </section>
                 </>
               )}
 
-            {session.phase === 'preview' && session.hits.length === 0 && (
+            {session.phase === 'preview' &&
+              session.hits.length === 0 &&
+              session.videos.length === 0 && (
               <div className="lq-banner">
                 沒有達到相似度門檻的結果，試試調低設定中的最低分數。
               </div>

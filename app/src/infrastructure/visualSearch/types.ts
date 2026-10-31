@@ -9,6 +9,7 @@ export interface VisualSearchRequest {
 export interface VisualSearchResponse {
   jobId: string;
   hits: SearchHit[];
+  videos: SearchHit[];
 }
 
 export interface VisualSearchClient {

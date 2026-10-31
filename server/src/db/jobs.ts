@@ -50,12 +50,31 @@ export function markJobRunning(db: AppDatabase, id: string): void {
   db.prepare(`UPDATE jobs SET status = 'running' WHERE id = ?`).run(id);
 }
 
-export function markJobReady(db: AppDatabase, id: string, hits: SearchHit[]): void {
+export function markJobReady(
+  db: AppDatabase,
+  id: string,
+  hits: SearchHit[],
+  videos: SearchHit[] = [],
+): void {
+  const payload = { images: hits, videos };
   db.prepare(
     `UPDATE jobs
      SET status = 'ready', finished_at = ?, hit_count = ?, hits_json = ?
      WHERE id = ?`,
-  ).run(new Date().toISOString(), hits.length, JSON.stringify(hits), id);
+  ).run(new Date().toISOString(), hits.length + videos.length, JSON.stringify(payload), id);
+}
+
+/** Older jobs stored a flat hit array. New jobs store `{ images, videos }`. */
+export function readStoredResults(hitsJson: string): { images: SearchHit[]; videos: SearchHit[] } {
+  const parsed = JSON.parse(hitsJson) as unknown;
+  if (Array.isArray(parsed)) {
+    return { images: parsed as SearchHit[], videos: [] };
+  }
+  const record = parsed as { images?: SearchHit[]; videos?: SearchHit[] };
+  return {
+    images: record.images ?? [],
+    videos: record.videos ?? [],
+  };
 }
 
 export function markJobFailed(db: AppDatabase, id: string, errorMessage: string): void {

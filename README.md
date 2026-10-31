@@ -50,6 +50,51 @@ npm run desktop
 
 桌面版可用系統對話框選資料夾並直接寫檔。
 
+## 系統架構
+
+```mermaid
+flowchart TB
+  user["使用者丟入一張查詢圖"]
+
+  subgraph clients ["客戶端"]
+    ui["React 畫面<br/>Vite :5173"]
+    electron["Electron Mac 殼"]
+  end
+
+  user --> ui
+  electron -->|"載入 localhost:5173"| ui
+
+  ui -->|"POST /v1/search"| api["Express API :8787"]
+  ui -->|"GET /v1/proxy、/v1/corpus"| api
+
+  subgraph engine ["搜尋"]
+    orch["searchOrchestrator"]
+    bing["Bing Visual Search<br/>有金鑰才走"]
+    serp["SerpAPI Google Lens<br/>需 imgbb 暫存查詢圖"]
+    photoCorpus["本機照片<br/>aHash"]
+    videoCorpus["本機影片<br/>海報 aHash"]
+  end
+
+  api --> orch
+  orch -->|"照片：Bing、SerpAPI、本機依序"| bing
+  orch --> serp
+  orch --> photoCorpus
+  orch -->|"影片一律合併本機結果"| videoCorpus
+
+  photoCorpus --> db[("SQLite<br/>jobs 與 corpus")]
+  videoCorpus --> db
+  db --> posters["server/data/corpus<br/>PNG 海報"]
+
+  orch -->|"hits 照片、videos 影片"| ui
+
+  ui -->|"照片可勾選後下載"| save["存檔"]
+  save -->|"桌面：系統對話框寫入資料夾"| folder["本機資料夾與 manifest"]
+  save -->|"瀏覽器：選資料夾或觸發下載"| folder
+
+  ui -->|"影片在播放器直連 WebM"| wiki["Wikimedia 影片檔"]
+  posters -.->|"啟動時索引入庫"| wiki
+```
+
 ## 專案結構
 
 ```text

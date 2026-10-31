@@ -40,7 +40,7 @@ export function DropZone({ disabled, onFile }: DropZoneProps) {
     >
       <div>
         <p className="lq-drop__title">拖入圖片，或點擊選擇</p>
-        <p className="lq-drop__hint">支援 JPG / PNG / WebP · 會送去找視覺相似結果</p>
+        <p className="lq-drop__hint">支援 JPG / PNG / WebP · 照片和影片會分開列出</p>
       </div>
       <input
         type="file"

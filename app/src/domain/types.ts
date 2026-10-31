@@ -27,6 +27,8 @@ export interface QueryImage {
 
 export type LicenseKind = 'unknown' | 'all_rights' | 'creative_commons' | 'public_domain';
 
+export type MediaKind = 'image' | 'video';
+
 export interface SearchHit {
   id: string;
   url: string;
@@ -34,6 +36,7 @@ export interface SearchHit {
   score: number;
   source: string;
   license: LicenseKind;
+  media?: MediaKind;
   width?: number;
   height?: number;
   title?: string;

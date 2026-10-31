@@ -3,10 +3,9 @@ import fs from 'node:fs';
 import multer from 'multer';
 import { z } from 'zod';
 import type { AppDatabase } from '../db/database.js';
-import { getJob, listJobs } from '../db/jobs.js';
+import { getJob, listJobs, readStoredResults } from '../db/jobs.js';
 import { corpusFilePath } from '../services/corpus.js';
 import { buildProviders, runSearchJob } from '../services/searchOrchestrator.js';
-import type { SearchHit } from '../types.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -71,6 +70,7 @@ export function createApiRouter(db: AppDatabase): Router {
         job_id: result.jobId,
         provider: result.provider,
         hits: result.hits,
+        videos: result.videos,
       });
     } catch (error) {
       res.status(502).json({
@@ -85,7 +85,7 @@ export function createApiRouter(db: AppDatabase): Router {
       res.status(404).json({ error: '找不到 job' });
       return;
     }
-    const hits = JSON.parse(job.hitsJson) as SearchHit[];
+    const stored = readStoredResults(job.hitsJson);
     res.json({
       job_id: job.id,
       status: job.status,
@@ -95,7 +95,8 @@ export function createApiRouter(db: AppDatabase): Router {
       created_at: job.createdAt,
       finished_at: job.finishedAt,
       error_message: job.errorMessage,
-      hits,
+      hits: stored.images,
+      videos: stored.videos,
     });
   });
 

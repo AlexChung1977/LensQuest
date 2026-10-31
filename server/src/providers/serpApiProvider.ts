@@ -1,5 +1,6 @@
 import type { SearchHit, VisualSearchProvider } from '../types.js';
 import { shortId } from '../util/hash.js';
+import { inferMedia } from '../util/media.js';
 
 /**
  * SerpAPI Google Lens adapter.
@@ -62,6 +63,7 @@ export class SerpApiGoogleLensProvider implements VisualSearchProvider {
         score: Math.round(score * 1000) / 1000,
         source: match.source ?? 'Google Lens',
         license: 'unknown',
+        media: inferMedia(url),
         title: match.title,
       });
     }

@@ -43,7 +43,13 @@ describe('search integration', () => {
 
     assert.equal(result.provider, 'local');
     assert.ok(result.hits.length > 0);
+    assert.ok(result.hits.every((hit) => hit.media === 'image'));
     assert.ok(result.hits[0]!.score >= result.hits.at(-1)!.score);
     assert.match(result.hits[0]!.url, /\/v1\/corpus\//);
+
+    assert.ok(result.videos.length > 0);
+    assert.ok(result.videos.every((hit) => hit.media === 'video' && hit.url.endsWith('.webm')));
+    assert.ok(result.videos[0]!.score >= result.videos.at(-1)!.score);
+    assert.ok(result.videos.every((video) => !result.hits.some((image) => image.id === video.id)));
   });
 });

@@ -28,7 +28,7 @@ app.get('/', (_req, res) => {
 });
 
 async function main() {
-  console.log('[lensquest] indexing local image corpus…');
+  console.log('[lensquest] indexing local image and video corpus…');
   const count = await ensureCorpus(db);
   console.log(`[lensquest] corpus size: ${count}`);
 

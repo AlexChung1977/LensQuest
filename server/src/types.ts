@@ -1,5 +1,7 @@
 export type LicenseKind = 'unknown' | 'all_rights' | 'creative_commons' | 'public_domain';
 
+export type MediaKind = 'image' | 'video';
+
 export interface SearchHit {
   id: string;
   url: string;
@@ -7,6 +9,8 @@ export interface SearchHit {
   score: number;
   source: string;
   license: LicenseKind;
+  /** Photos and videos are stored together and split by the client. */
+  media: MediaKind;
   width?: number;
   height?: number;
   title?: string;

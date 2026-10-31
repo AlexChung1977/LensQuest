@@ -75,6 +75,25 @@ export class MockVisualSearchClient implements VisualSearchClient {
         score: Math.round(score * 1000) / 1000,
         source: SOURCES[(seedBase + i) % SOURCES.length],
         license: i % 4 === 0 ? 'creative_commons' : i % 5 === 0 ? 'public_domain' : 'unknown',
+        media: 'image',
+        width: 640,
+        height: 480,
+      });
+    }
+
+    const videos: SearchHit[] = [];
+    for (let i = 0; i < Math.min(4, count); i += 1) {
+      const label = `Clip ${String(i + 1).padStart(2, '0')}`;
+      const poster = makePlaceholderDataUrl(seedBase + 40 + i, label);
+      videos.push({
+        id: `vid-${request.image.id}-${i}`,
+        url: poster,
+        thumbUrl: poster,
+        score: Math.round((0.8 - i * 0.08) * 1000) / 1000,
+        source: SOURCES[(seedBase + i) % SOURCES.length],
+        license: 'creative_commons',
+        media: 'video',
+        title: label,
         width: 640,
         height: 480,
       });
@@ -83,6 +102,7 @@ export class MockVisualSearchClient implements VisualSearchClient {
     return {
       jobId: `job-${Date.now().toString(36)}`,
       hits,
+      videos,
     };
   }
 }

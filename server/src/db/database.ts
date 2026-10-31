@@ -38,7 +38,15 @@ export function openDatabase(dbPath = process.env.LENSQUEST_DB_PATH) {
 
     CREATE INDEX IF NOT EXISTS idx_jobs_created ON jobs(created_at DESC);
   `);
+  addCorpusColumn(db, 'media', `TEXT NOT NULL DEFAULT 'image'`);
+  addCorpusColumn(db, 'watch_url', 'TEXT');
   return db;
+}
+
+function addCorpusColumn(db: InstanceType<typeof Database>, name: string, definition: string) {
+  const columns = db.prepare(`PRAGMA table_info(corpus)`).all() as Array<{ name: string }>;
+  if (columns.some((column) => column.name === name)) return;
+  db.exec(`ALTER TABLE corpus ADD COLUMN ${name} ${definition}`);
 }
 
 export type AppDatabase = ReturnType<typeof openDatabase>;

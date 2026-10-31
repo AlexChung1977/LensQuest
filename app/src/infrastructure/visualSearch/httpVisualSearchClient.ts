@@ -26,6 +26,7 @@ export class HttpVisualSearchClient implements VisualSearchClient {
       job_id?: string;
       provider?: string;
       hits?: SearchHit[];
+      videos?: SearchHit[];
       error?: string;
     };
 
@@ -37,6 +38,7 @@ export class HttpVisualSearchClient implements VisualSearchClient {
       jobId: payload.job_id ?? 'unknown',
       provider: payload.provider ?? 'unknown',
       hits: payload.hits ?? [],
+      videos: payload.videos ?? [],
     };
   }
 }

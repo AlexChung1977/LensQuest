@@ -1,10 +1,11 @@
 import type { AppDatabase } from '../db/database.js';
 import { insertJob, markJobFailed, markJobReady, markJobRunning } from '../db/jobs.js';
 import { BingVisualSearchProvider } from '../providers/bingProvider.js';
-import { LocalPerceptualProvider } from '../providers/localProvider.js';
+import { LocalPerceptualProvider, searchLocalVideos } from '../providers/localProvider.js';
 import { SerpApiGoogleLensProvider } from '../providers/serpApiProvider.js';
 import type { SearchHit, VisualSearchProvider } from '../types.js';
 import { sha256, shortId } from '../util/hash.js';
+import { inferMedia } from '../util/media.js';
 
 export function buildProviders(db: AppDatabase): VisualSearchProvider[] {
   const providers: VisualSearchProvider[] = [];
@@ -38,7 +39,7 @@ export async function runSearchJob(
     maxResults: number;
     minScore: number;
   },
-): Promise<{ jobId: string; provider: string; hits: SearchHit[] }> {
+): Promise<{ jobId: string; provider: string; hits: SearchHit[]; videos: SearchHit[] }> {
   const providers = buildProviders(db);
   const jobId = shortId('job');
   const queryHash = sha256(input.bytes);
@@ -57,14 +58,22 @@ export async function runSearchJob(
   const errors: string[] = [];
   for (const provider of providers) {
     try {
-      const hits = await provider.search(input);
-      if (hits.length === 0 && provider.name !== 'local') {
+      const found = await provider.search(input);
+      const images = found.filter((hit) => (hit.media ?? inferMedia(hit.url)) !== 'video').map((hit) => ({
+        ...hit,
+        media: 'image' as const,
+      }));
+      const providerVideos = found
+        .filter((hit) => (hit.media ?? inferMedia(hit.url)) === 'video')
+        .map((hit) => ({ ...hit, media: 'video' as const }));
+      if (images.length === 0 && providerVideos.length === 0 && provider.name !== 'local') {
         errors.push(`${provider.name}: empty results`);
         continue;
       }
-      markJobReady(db, jobId, hits);
+      const videos = await mergeLocalVideos(db, input, providerVideos);
+      markJobReady(db, jobId, images, videos);
       db.prepare(`UPDATE jobs SET provider = ? WHERE id = ?`).run(provider.name, jobId);
-      return { jobId, provider: provider.name, hits };
+      return { jobId, provider: provider.name, hits: images, videos };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       errors.push(`${provider.name}: ${message}`);
@@ -74,4 +83,28 @@ export async function runSearchJob(
   const message = errors.join(' | ') || 'No search provider available';
   markJobFailed(db, jobId, message);
   throw new Error(message);
+}
+
+async function mergeLocalVideos(
+  db: AppDatabase,
+  input: { bytes: Buffer; maxResults: number; minScore: number },
+  providerVideos: SearchHit[],
+): Promise<SearchHit[]> {
+  let localVideos: SearchHit[] = [];
+  try {
+    localVideos = await searchLocalVideos(db, input);
+  } catch {
+    localVideos = [];
+  }
+
+  const seen = new Set<string>();
+  const merged: SearchHit[] = [];
+  const ranked = [...providerVideos, ...localVideos].sort((a, b) => b.score - a.score);
+  for (const hit of ranked) {
+    if (seen.has(hit.url)) continue;
+    seen.add(hit.url);
+    merged.push(hit);
+    if (merged.length >= input.maxResults) break;
+  }
+  return merged;
 }

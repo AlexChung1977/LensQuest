@@ -1,5 +1,6 @@
 import type { SearchHit, VisualSearchProvider } from '../types.js';
 import { shortId } from '../util/hash.js';
+import { inferMedia } from '../util/media.js';
 
 /**
  * Azure Bing Visual Search adapter.
@@ -87,6 +88,7 @@ export class BingVisualSearchProvider implements VisualSearchProvider {
         score: Math.round(score * 1000) / 1000,
         source: item.hostPageDomainFriendlyName ?? 'Bing',
         license: 'unknown',
+        media: inferMedia(url),
         title: item.name,
         width: item.width,
         height: item.height,
